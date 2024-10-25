@@ -6,6 +6,7 @@ import pefile
 import binascii
 import copy
 import os
+import time
 from collections import OrderedDict
 from lists import *
 import win32api
@@ -24,6 +25,7 @@ import timeit
 from helpers import *
 from gadgets import foundGadgets
 from gadgets import *
+from eval_logger import EvalLogger
 import math
 import platform
 from ropemu import *
@@ -407,12 +409,25 @@ def extractDlls():
 				extractDLLsEach(dll)
 
 	if doParallel:
+		
+		# ALEX EVAL
+		eval_logger.write_to_log(total_time=None, log_type='num_dll', extra=len(pe))
+		
 		for dll in pe:
+			# ALEX EVAL
+			eval_logger.write_to_log(total_time=None, log_type='dll_name', extra=dll)
 			if pe[dll].isDLL and not pe[dll].skipDll:# and not pe[dll].systemWin:
 				myArgs.append((dll,pe))	
 		pool = multiprocessing.Pool(cpu_count-1)
-		out=pool.map(extractDLLsEachParallel, myArgs)
 		
+		# ALEX EVAL
+		startmap_args = [(arg, eval_logger) for arg in myArgs]
+		try:
+			#out=pool.map(extractDLLsEachParallel, myArgs)
+			out=pool.starmap(extractDLLsEachParallel, startmap_args)
+		except Exception as e:
+			print(f"ExtractDlls parallel error: {e}")
+
 		for each in out:
 			if each==None:
 				continue
@@ -464,10 +479,9 @@ def extractDLLsEach(dll):
 		dp (e)
 		dp(traceback.format_exc())
 
-def extractDLLsEachParallel(args):
+def extractDLLsEachParallel(args, eval_logger):
 
 	dp("extractDLLsEachParallel")
-
 	#### no not create dictionary - create NEW object - the new object then is added to dict
 	# make two spearate extract dlls, parallel and non parallel
 	dll=args[0]
@@ -507,7 +521,8 @@ def extractDLLsEachParallel(args):
 		newPE.setExtracted(True)
 		return newPE,dll
 	except Exception as e:
-		print (" Extraction did not suceed for ", dll)
+		# ALEX EVAL
+		eval_logger.write_to_log(total_time=None,log_type='failed_dll',extra=dll)
 
 		dp (red+"extractDLLsEachParallel error", e,res)
 		dp(traceback.format_exc())
@@ -10761,8 +10776,10 @@ def buildMovDerefSyscall(excludeRegs,bad, myArgs ,numArgs):
 			dp ("op2 regsNotUsed", op2)
 			# print ("reg", reg, "op2",op2)
 			excludeRegs2,regsNotUsed3= regsAvailtoExclude(regsNotUsed2,excludeRegs)
+			eval_logger.start_timing('findMovDeref')
 			foundM1, m1 = findMovDeref(reg,op2,bad,length1, excludeRegs2)
-	
+			mov_def_time = eval_logger.stop_timing('findMovDeref')
+			eval_logger.write_to_log(total_time=mov_def_time,log_type='find_gadget',extra='findMovDeref')
 			if not foundM1:
 				# print("continue 1")
 				continue
@@ -10778,6 +10795,7 @@ def buildMovDerefSyscall(excludeRegs,bad, myArgs ,numArgs):
 				continue
 
 			if foundM1 and foundL1 and foundInc:
+				eval_logger.start_timing('findMovDeref_helper')
 				helperSuccessSV, pkVRSforPtr=helperMovDeref(reg,op2,bad,length1, regsNotUsed2,espDesiredMovement, sizeForPtr, m1,i1,"Size value for Region Size, " + hex(sizeForPtr))
 				if not helperSuccessSV:
 					# print("continue 4")
@@ -10849,6 +10867,9 @@ def buildMovDerefSyscall(excludeRegs,bad, myArgs ,numArgs):
 				cI=chainObj(i1, "Decrement " + reg, [])
 				pkZBA=pkBuild([chP,cM, cI,cI,cI,cI])
 
+				helper = eval_logger.stop_timing('findMovDeref_helper')
+				eval_logger.write_to_log(total_time=helper,log_type='find_gadget',extra='findMovDeref_helper')
+			
 			foundStart, pkStart=findMovDerefGetStack(reg,bad,length1, excludeRegs2,regsNotUsed2,espDesiredMovement,distEsp)
 			if not foundStart:
 				# print ("continue 14")
@@ -16670,6 +16691,104 @@ def readConf():
 	dp(t_opt)
 	dp(opt)
 
+# ALEX EVAL
+def auto_run(all, optional_menu_arg):
+	global opt
+
+	splash()
+	global dllDict
+	# print (dllDict)
+	try:
+		opt["bx86Extracted"]=False
+		opt["bx64Extracted"]=False
+		opt["bx86Extracted"]=fg.x86
+		opt["bx64Extracted"]=fg.x64
+	except:
+		pass
+	uiShowOptionsMainMenu(opt["bx86Extracted"],opt["bx64Extracted"])
+	x = ""
+
+		#Loops on keyboard input
+	try:			#Will break the loop on entering x
+		#menu_options = ['g','a','v','s','d','m','!','@']
+		if (all or (not all and optional_menu_arg == 'g')):
+			eval_logger.start_timing('HeavanGatex32')
+			genHeavanGatex32()
+			end = eval_logger.stop_timing('HeavanGatex32')
+			eval_logger.write_to_log(total_time=end, log_type='chain', extra='g')
+			if not all: return
+
+		if (all or (not all and optional_menu_arg == 'a')):
+			eval_logger.start_timing('genWinSyscallNtAllocateVirtualMemory')
+			genWinSyscallNtAllocateVirtualMemory()
+			end = eval_logger.stop_timing('genWinSyscallNtAllocateVirtualMemory')
+			eval_logger.write_to_log(total_time=end, log_type='chain', extra='a')
+			if not all: return
+
+		if (all or (not all and optional_menu_arg == 'v')):
+			eval_logger.start_timing('genWinSyscallNtProtectVirtualMemory')
+			genWinSyscallNtProtectVirtualMemory()
+			end = eval_logger.stop_timing('genWinSyscallNtProtectVirtualMemory')
+			eval_logger.write_to_log(total_time=end, log_type='chain', extra='v')
+			if not all: return
+
+		if (all or (not all and optional_menu_arg == 's')):
+			eval_logger.start_timing('genShellcodelessROP_System')
+			genShellcodelessROP_System()
+			end = eval_logger.stop_timing('genShellcodelessROP_System')
+			eval_logger.write_to_log(total_time=end, log_type='chain', extra='s')
+			if not all: return
+
+		if (all or (not all and optional_menu_arg == 'd')):
+			eval_logger.start_timing('genShellcodelessROP_GetProc')
+			genShellcodelessROP_GetProc()
+			end = eval_logger.stop_timing('genShellcodelessROP_GetProc')
+			eval_logger.write_to_log(total_time=end, log_type='chain', extra='d')
+			if not all: return
+
+		if (all or (not all and optional_menu_arg == 'm')):
+			eval_logger.start_timing('genMovDerefVP')
+			genMovDerefVP()
+			end = eval_logger.stop_timing('genMovDerefVP')
+			eval_logger.write_to_log(total_time=end, log_type='chain', extra='m')
+			if not all: return
+
+		if (all or (not all and optional_menu_arg == '!')):
+			eval_logger.start_timing('genVirtualProtectPushad')
+			genVirtualProtectPushad()
+			end = eval_logger.stop_timing('genVirtualProtectPushad')
+			eval_logger.write_to_log(total_time=end, log_type='chain', extra='!')
+			if not all: return
+
+		if (all or (not all and optional_menu_arg == '@')):
+			eval_logger.start_timing('genVirtualAllocPushad')
+			genVirtualAllocPushad()
+			end = eval_logger.stop_timing('genVirtualAllocPushad')
+			eval_logger.write_to_log(total_time=end, log_type='chain', extra='@')
+			if not all: return
+
+		if (all or (not all and optional_menu_arg == '#')):
+			eval_logger.start_timing('genWinExecPushad')
+			genWinExecPushad()
+			end = eval_logger.stop_timing('genWinExecPushad')
+			eval_logger.write_to_log(total_time=end, log_type='chain', extra='#')
+			if not all: return
+
+		if (all or (not all and optional_menu_arg == '$')):
+			eval_logger.start_timing('genDeleteFileAPushad')
+			genDeleteFileAPushad()
+			end = eval_logger.stop_timing('genDeleteFileAPushad')
+			eval_logger.write_to_log(total_time=end, log_type='chain', extra='$')
+			if not all: return
+		
+
+
+	except Exception as e:
+		print (e)
+		print(traceback.format_exc())
+		print ("exception")
+		exit
+
 def ui():
 	global opt
 
@@ -16795,6 +16914,7 @@ if __name__ == "__main__":
 	if os.path.exists(newpath):
 		# print ("file exists")
 		useSaved=True
+	
 	# else:
 	# 	print("file not found", newpath, fName)
 	# useSaved=False
@@ -16803,6 +16923,21 @@ if __name__ == "__main__":
 	filename=filenameRaw+"_gadgets.obj"
 	filenamePE=filenameRaw+"_PE.obj"
 	filenameDLL=filenameRaw+"_DllDict.obj"
+
+	# ALEX EVAL
+	global eval_logger
+	EVALUATION = True
+	#EVALUATION = False
+	file_path = sys.argv[1]
+	prog_name = os.path.splitext(os.path.basename(file_path))[0]
+	eval_logger = EvalLogger(EVALUATION,prog_name)
+
+	#eval_logger.print()
+
+	if (eval_logger.evaluation):
+		print("Running in EVALUATION mode.")
+		useSaved = False
+
 
 			
 	try:
@@ -16816,9 +16951,14 @@ if __name__ == "__main__":
 
 
 		if not useSaved:
+			# ALEX EVAL
+			eval_logger.start_timing('extraction')
 			if opt["bx86Extracted"] == False and opt["bx64Extracted"]==False:
 				print (gre+"   ROP ROCKET is starting. It will extract gadgets, if this has not already been done.\n   These will be saved for subsequent runs."+res)
 			Extraction()
+			# ALEX EVAL
+			extraction_time = eval_logger.stop_timing('extraction')
+			eval_logger.write_to_log(total_time=extraction_time,log_type='extraction',extra=None)
 		else:
 			try:
 				filehandlerPE = open(filenamePE, 'rb') 
@@ -16834,7 +16974,7 @@ if __name__ == "__main__":
 				useSaved=False
 				# print ("set false")
 
-
+		
 		if not useSaved:
 			
 			noneBox=[]
@@ -16857,16 +16997,21 @@ if __name__ == "__main__":
 				# timeStop = timeit.default_timer()
 				dp ("run_fast_scandir time")
 				# dp(str(# timeStop - # timeStart))
-				
+			
 			for dll in noneBox:
 				findDLLOther(dll)
-
+			
+			eval_logger.start_timing('DLL_Extraction')
 			evaluateDll(skipSystemDlls, skipAllDlls, None)   # skipSystem, skipAll, skipNonextracted  # none = we do not want to apply nonExtract restriction before extracting
+			
 			if bExtractDlls:
 				extractDlls()
 			evaluateDll(skipSystemDlls, skipAllDlls, skipNonExtractedDlls)   # skipSystem, skipAll, skipNonextracted
+			dll_stop = eval_logger.stop_timing('DLL_Extraction')
+			eval_logger.write_to_log(total_time=dll_stop,log_type='DLL_Extraction', extra=None)
 			# printPEValuesDict()
 			# input()
+			
 			filenamePE=filenameRaw+"_PE.obj"
 			file_pe = open(filenamePE, 'wb') 
 			pickle.dump(pe, file_pe)
@@ -16883,6 +17028,8 @@ if __name__ == "__main__":
 
 		# start2 = timeit.default_timer()
 		if not useSaved:
+			# ALEX EVAL
+			eval_logger.start_timing('classification')
 			if not doParallel:
 				get_OP_RET(15)
 			else:
@@ -16893,6 +17040,10 @@ if __name__ == "__main__":
 			filename=filenameRaw+"_gadgets.obj"
 			file_pi = open(filename, 'wb') 
 			pickle.dump(fg, file_pi)
+			# ALEX EVAL
+			class_time =eval_logger.stop_timing('classification')
+			eval_logger.write_to_log(total_time=class_time, log_type='classification', extra=None)
+
 		else:
 			# start3 = timeit.default_timer()
 			pass
@@ -16917,8 +17068,17 @@ if __name__ == "__main__":
 		bb.show()
 		readConf()
 		# genBasesForEmNew()
-
-		ui()
+		
+		# ALEX EVAL
+		if (eval_logger.evaluation):
+			# menu_options = ['g','a','v','s','d','m','!','@']
+			auto_run(all=True, optional_menu_arg=None)
+			#auto_run(all=False, optional_menu_arg='v')
+		else:
+			ui()
+		#run_deletefile()
+		#auto_run()
+		#ui()
 
 		popExcludeRegs=[""]
 		# hgExcludeRegs=[]
