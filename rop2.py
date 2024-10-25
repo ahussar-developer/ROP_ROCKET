@@ -26,6 +26,7 @@ from helpers import *
 from gadgets import foundGadgets
 from gadgets import *
 from eval_logger import EvalLogger
+from typing import Optional
 import math
 import platform
 from ropemu import *
@@ -52,6 +53,16 @@ except Exception as e:
 # from selfModify import *
 	# from ui import *
 import colorama
+
+# ALEX EVAL
+eval_logger: Optional[EvalLogger] = None
+EVALUATION = True
+#EVALUATION = False
+file_path = sys.argv[1]
+prog_name = os.path.splitext(os.path.basename(file_path))[0]
+eval_logger = EvalLogger(EVALUATION,prog_name)
+#eval_logger.print()
+
 
 excludeRegsGlobal =[]
 
@@ -16896,7 +16907,6 @@ def ui():
 			print(traceback.format_exc())
 			print ("exception")
 
-
 if __name__ == "__main__":
 	rop=doGadgets()
 	fgc=gadgetChains()  #final gadget chains
@@ -16923,16 +16933,6 @@ if __name__ == "__main__":
 	filename=filenameRaw+"_gadgets.obj"
 	filenamePE=filenameRaw+"_PE.obj"
 	filenameDLL=filenameRaw+"_DllDict.obj"
-
-	# ALEX EVAL
-	global eval_logger
-	EVALUATION = True
-	#EVALUATION = False
-	file_path = sys.argv[1]
-	prog_name = os.path.splitext(os.path.basename(file_path))[0]
-	eval_logger = EvalLogger(EVALUATION,prog_name)
-
-	#eval_logger.print()
 
 	if (eval_logger.evaluation):
 		print("Running in EVALUATION mode.")
@@ -17073,7 +17073,7 @@ if __name__ == "__main__":
 		if (eval_logger.evaluation):
 			# menu_options = ['g','a','v','s','d','m','!','@']
 			auto_run(all=True, optional_menu_arg=None)
-			#auto_run(all=False, optional_menu_arg='v')
+			#auto_run(all=False, optional_menu_arg='s')
 		else:
 			ui()
 		#run_deletefile()

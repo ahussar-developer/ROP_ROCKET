@@ -23,6 +23,8 @@ import sys
 import struct
 import signal
 
+from rop2 import eval_logger
+
 # memory address where emulation starts
 ADDRESS = 0x1000000
 
@@ -1426,6 +1428,7 @@ sysTarget2=0
 
 
 def rop_testerRunROP(pe,n,gadgets, distEsp,IncDec,numP,targetP2,targetR, PWinApi,sysTarget,finalPivotGadget1, rValStr=None):
+    eval_logger.start_timing("rop_testerRunROP")
     # print(blu,"rop_testerRunROP", rValStr,res)
     global maxCount
     global winApiSyscallReached
@@ -1717,7 +1720,8 @@ def rop_testerRunROP(pe,n,gadgets, distEsp,IncDec,numP,targetP2,targetR, PWinApi
         dp ("uc_err", uc_err)
         stopProcess = False
 
-
+        end = eval_logger.stop_timing('rop_testerRunROP')
+        eval_logger.write_to_log(total_time=end, log_type='emu', extra='rop_testerRunROP')
         return gOutput, locParam, locReg, winApiSyscallReached, givStDistance
 
     except UcError as e:
@@ -1738,6 +1742,8 @@ def rop_testerRunROP(pe,n,gadgets, distEsp,IncDec,numP,targetP2,targetR, PWinApi
             locParam=RP.giveParamLocOnStack(targetP,"syscall")
         else:
             locParam=RP.giveParamLocOnStack(targetP,"winApi")
+        end = eval_logger.stop_timing('rop_testerRunROP')
+        eval_logger.write_to_log(total_time=end, log_type='emu', extra='rop_testerRunROP-EXCEPTION')
         return gOutput, locParam,oldEsp,winApiSyscallReached,givStDistance
 
 rop_testerCalled=0
@@ -1745,6 +1751,7 @@ prevRop_testerCalled=0
 
 def rop_tester(testCode, ID=False, regWritable=False):
     # print (mag,"rop_tester",res)
+    eval_logger.start_timing('rop_tester')
     dp("*************************************************************************************************")
     outFile.write("Roptester:\t")
     outFile.write(binaryToStr(testCode)+"\n")
@@ -1845,6 +1852,8 @@ def rop_tester(testCode, ID=False, regWritable=False):
             # mu.release_handle()
         except:
             pass
+        end = eval_logger.stop_timing('rop_tester')
+        eval_logger.write_to_log(total_time=end, log_type='emu', extra='rop_tester')
         return gOutput
 
     except UcError as e:
@@ -1906,6 +1915,7 @@ def adjustRegForMem(lst,gOutput):
             gOutput.setEbpTemp(startVal)
         startVal+=0x222
 def rop_testerFS(testCode, fsReg,fsAdjust, ID=False, regWritable=False):
+    eval_logger.start_timing('rop_testerFS')
     # print (mag,"rop_tester",res)
     dp("*************************************************************************************************")
     outFile.write("RoptesterFS:\t")
@@ -2048,6 +2058,8 @@ def rop_testerFS(testCode, fsReg,fsAdjust, ID=False, regWritable=False):
             # mu.release_handle()
         except:
             pass
+        end = eval_logger.stop_timing('rop_testerFS')
+        eval_logger.write_to_log(total_time=end, log_type='emu', extra='rop_testerFS')
         return gOutput, syscallValAtESP
 
     except UcError as e:
@@ -2058,14 +2070,19 @@ def rop_testerFS(testCode, fsReg,fsAdjust, ID=False, regWritable=False):
         doGC()
         if ID!="special":
             gOutput=  rop_tester(testCode,"special")
+            end = eval_logger.stop_timing('rop_testerFS')
+            eval_logger.write_to_log(total_time=end, log_type='emu', extra='rop_testerFS_Exception_Special')
             return gOutput,syscallValAtESP
         giveRegOuts(mu)
         gOutput.setError(e)
         # errorESP(mu)
         giveRegOuts(mu)
+        end = eval_logger.stop_timing('rop_testerFS')
+        eval_logger.write_to_log(total_time=end, log_type='emu', extra='rop_testerFS_Exception')
         return gOutput,syscallValAtESP
 
 def rop_testerDoublePush(testCode,first,second):
+    eval_logger.start_timing('rop_testerDoublePush')
     dp("*************************************************************************************************")
     dp (testCode.hex())
     dp ("first", first, "second", second)
@@ -2183,7 +2200,8 @@ def rop_testerDoublePush(testCode,first,second):
         if firstOut ==0x33333333 and secondOut == 0x66666666:
             dp ("Good HG gadget")
             hgGadgetStatus=True
-
+        end = eval_logger.stop_timing('rop_testerDoublePush')
+        eval_logger.write_to_log(total_time=end, log_type='emu', extra='rop_testerDoublePush')
         return gOutput, hgGadgetStatus
 
 
@@ -2194,13 +2212,15 @@ def rop_testerDoublePush(testCode,first,second):
         gOutput.setError(e)
         # errorESP(mu)
         giveRegOuts(mu)
-        
+        end = eval_logger.stop_timing('rop_testerDoublePush')
+        eval_logger.write_to_log(total_time=end, log_type='emu', extra='rop_testerDoublePush_Exception')
         return gOutput, False
 
 evil_look_up={"eax": 0x11111111, "ebx": 0x22224222, "ecx":0x33333333, "edx":0x44444444,"edi":0x55555555,"esi":0x66666666,"ebp":0x77777777,"esp":0x88888888}
 rev_evil_look_up={0x11111111:"eax", 0x22224222:"ebx",0x33333333:"ecx",0x44444444:"edx",0x55555555:"edi",0x66666666:"esi",0x77777777:"ebp",0x88888888:"esp"}
 
 def rop_testerDoublePop(testCode,first):
+    eval_logger.start_timing('rop_testerDoublePop')
     dp("*************************************************************************************************")
     dp (testCode.hex())
     dp ("first", first, "second", second)
@@ -2323,7 +2343,8 @@ def rop_testerDoublePop(testCode,first):
         if firstOut ==0x33333333 and secondOut == 0x66666666:
             dp ("Good HG gadget")
             hgGadgetStatus=True
-
+        end = eval_logger.stop_timing('rop_testerDoublePop')
+        eval_logger.write_to_log(total_time=end, log_type='emu', extra='rop_testerDoublePop')
         return gOutput, hgGadgetStatus
 
 
@@ -2334,8 +2355,10 @@ def rop_testerDoublePop(testCode,first):
         gOutput.setError(e)
         # errorESP(mu)
         giveRegOuts(mu)
-        
+        end = eval_logger.stop_timing('rop_testerDoublePop')
+        eval_logger.write_to_log(total_time=end, log_type='emu', extra='rop_testerDoublePop_Exception')
         return gOutput
+    
 if __name__ == '__main__':
     # test_x86_16()
     # test_i386()
