@@ -125,9 +125,19 @@ class EvalLogger:
                 print(f"Error occured: {e}")
         elif (log_type == 'emu'):
             emu_type = extra
-            try:
-                with open(self.log_file, 'a') as file:
-                    line = f"Running RopEMU:{emu_type} took {total_time} seconds\n"
-                    file.write(line)
-            except IOError as e:
-                print(f"Error occured: {e}")
+            if (total_time > 0.0):
+                try:
+                    with open(self.log_file, 'a') as file:
+                        line = f"Running RopEMU:{emu_type} took {total_time} seconds\n"
+                        file.write(line)
+                except IOError as e:
+                    print(f"Error occured: {e}")
+        elif (log_type == 'other'):
+            comments = extra
+            if (total_time > 0.0):
+                try:
+                    with open(self.log_file, 'a') as file:
+                        line = f"{comments} took {total_time} seconds\n"
+                        file.write(line)
+                except IOError as e:
+                    print(f"Error occured: {e}")

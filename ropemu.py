@@ -362,6 +362,7 @@ class gadgetRegs:
         return returnVal
 
     def CalculateRemainingRegs(self,first,second):
+        eval_logger.start_timing('CalculateRemainingRegs')
         regs=["eax", "ebx","ecx","edx", "esi","edi","ebp"]
         regs.remove(first)
         regs.remove(second)
@@ -373,6 +374,9 @@ class gadgetRegs:
             val+=dict_look_up[r]
         dp ("difference", val)
         self.hgDiff=val
+        end = eval_logger.stop_timing('CalculateRemainingRegs')
+        eval_logger.write_to_log(total_time=end, log_type='emu', extra='CalculateRemainingRegs')
+
     def setError(self,val):
         dp ("setError", val)
         self.error=True
@@ -443,6 +447,7 @@ class gadgetRegs:
             dp(traceback.format_exc())
             return False,0
     def checkFreeTester(self,regs, remExc=None, espGuard=0x100):
+        eval_logger.start_timing('checkFreeTester')
         # print ("checkFree", regs, remExc)
         if remExc=="ds" or remExc=="fs" or remExc=="es" :
             return False,0
@@ -473,23 +478,33 @@ class gadgetRegs:
                 try:
                     if self.diffs[r]!=0:
                         print (yel,"bads",r, hex(self.diffs[r]),res)
+                        end = eval_logger.stop_timing('checkFreeTester')
+                        eval_logger.write_to_log(total_time=end, log_type='emu', extra='checkFreeTester')
                         return False,0
                 except:
                     # print (yel,"checkfree except",res)
+                    end = eval_logger.stop_timing('checkFreeTester')
+                    eval_logger.write_to_log(total_time=end, log_type='emu', extra='checkFreeTester')
                     return False,0
                     break
                     pass
             try:       
                 if self.diffEsp <= espGuard:
                     # print ("check-->GOOD")
+                    end = eval_logger.stop_timing('checkFreeTester')
+                    eval_logger.write_to_log(total_time=end, log_type='emu', extra='checkFreeTester')
                     return True, self.diffEspSP
                 # print ("returning false")
             except:
                 pass
+            end = eval_logger.stop_timing('checkFreeTester')
+            eval_logger.write_to_log(total_time=end, log_type='emu', extra='checkFreeTester')
             return True,self.diffEspSP
         except Exception as e:
             dp("cfree ERROR: %s" % e)
             dp(traceback.format_exc())
+            end = eval_logger.stop_timing('checkFreeTester')
+            eval_logger.write_to_log(total_time=end, log_type='emu', extra='checkFreeTester')
             return False,0
     def verifyValSame(self,reg1,reg2):
         # print ("verifyValSame",reg1, reg2)
@@ -552,6 +567,7 @@ class gadgetRegs:
 
 
     def checkForPops(self,findEspPops):
+        eval_logger.start_timing('checkForPops')
         dp("checkForPops findEspPops",findEspPops)
         try:
             dict_look_up={"eax": self.eax, "ebx": self.ebx, "ecx":self.ecx, "edx":self.edx,"edi":self.edi,"esi":self.esi,"ebp":self.ebp,"esp":self.esp}
@@ -565,8 +581,12 @@ class gadgetRegs:
                 if curVal==numDict_look_up[t]:
                     dp ("cur=desired")
                 else:
+                    end = eval_logger.stop_timing('checkForPops')
+                    eval_logger.write_to_log(total_time=end, log_type='emu', extra='checkForPops')
                     return False
                 t=t+1
+            end = eval_logger.stop_timing('checkForPops')
+            eval_logger.write_to_log(total_time=end, log_type='emu', extra='checkForPops')
             return True
 
 
@@ -586,8 +606,12 @@ class gadgetRegs:
             dp("cfB ERROR: %s" % e)
             dp(traceback.format_exc())
             dp ("except: returning false")
+            eval_logger.start_timing('checkForPops')
+            end = eval_logger.stop_timing('checkForPops')
+            eval_logger.write_to_log(total_time=end, log_type='emu', extra='checkForPops-exception')
             return False # some kind of exception, e.g. memory error
     def checkForBad(self,excludeRegs, espDesiredMovement):
+        eval_logger.start_timing('checkForBad')
         dp("checkForBad excludeRegs", excludeRegs, "espDesiredMovement", espDesiredMovement)
         espDList=False
         if type(espDesiredMovement)==list:
@@ -602,10 +626,13 @@ class gadgetRegs:
                     if val != 0 or self.diffEsp != espDesiredMovement:
                         dp ("checkForBad FALSE")
                         dp ("val", val, espDesiredMovement)
+                        end = eval_logger.stop_timing('checkForBad')
+                        eval_logger.write_to_log(total_time=end, log_type='emu', extra='checkForBad')
                         return False
                     else:
                         dp ("checkForBad TRUE")
-
+                        end = eval_logger.stop_timing('checkForBad')
+                        eval_logger.write_to_log(total_time=end, log_type='emu', extra='checkForBad')
                         return True  # free of clobbering for selected regs
             else:   # it is a list  
                 espMin=espDesiredMovement[0]
@@ -615,15 +642,20 @@ class gadgetRegs:
                     if val !=0 or self.diffEsp <espMin or self.diffEsp>espMax:
                         dp ("checkForBad FALSE")
                         dp ("val", val, espDesiredMovement)
+                        end = eval_logger.stop_timing('checkForBad')
+                        eval_logger.write_to_log(total_time=end, log_type='emu', extra='checkForBad')
                         return False
                     else:
                         dp ("checkForBad TRUE")
-
+                        end = eval_logger.stop_timing('checkForBad')
+                        eval_logger.write_to_log(total_time=end, log_type='emu', extra='checkForBad')
                         return True  # free of clobbering for selected regs
         except Exception as e:
             dp("cfB ERROR: %s" % e)
             dp(traceback.format_exc())
             dp ("except: returning false")
+            end = eval_logger.stop_timing('checkForBad')
+            eval_logger.write_to_log(total_time=end, log_type='emu', extra='checkForBad-exception')
             return False # some kind of exception, e.g. memory error
             
 def disMini(CODED2, offset):
@@ -679,9 +711,12 @@ def rg(val):
     rg=struct.pack("<I", val)
     return rg
 def giveStackSys(uc, arch):
+    eval_logger.start_timing('giveStackSys')
     global ApiSyscall
     global sysTarget2
     if ApiSyscall!="syscall":
+        end = eval_logger.stop_timing('giveStackSys')
+        eval_logger.write_to_log(total_time=end, log_type='emu', extra='giveStackSys-syscall')
         return False, 0x696969699
     # print (gre,"giveStackSys",res, hex(sysTarget2))
     # 0x55667799
@@ -711,7 +746,11 @@ def giveStackSys(uc, arch):
         if start-goBackDistance==0:
             # print(yel,binaryToStr(mem3),res)
             pass
+        end = eval_logger.stop_timing('giveStackSys')
+        eval_logger.write_to_log(total_time=end, log_type='emu', extra='giveStackSys')
         return True,start-goBackDistance
+    end = eval_logger.stop_timing('giveStackSys')
+    eval_logger.write_to_log(total_time=end, log_type='emu', extra='giveStackSys')
     return False,0xdeadc0de
 
 def giveStack(uc, arch):
@@ -795,6 +834,7 @@ doAfterPivot=False
 givStDistance=0xdeadc0de
 
 def hook_code2(uc, address, size, user_data):
+    eval_logger.start_timing('hook_code2')
     # print ("hook_code2")
     global winApiSyscallReached
     global maxCount
@@ -935,6 +975,8 @@ def hook_code2(uc, address, size, user_data):
     if bad_instruct:
         # print ("bad instruction-stopping")
         stopProcess = True
+    end = eval_logger.stop_timing('hook_code2')
+    eval_logger.write_to_log(total_time=end, log_type='emu', extra='hook_code2')
 
 def checkRetStart(pe):
     highest=0x1005000
@@ -1721,7 +1763,7 @@ def rop_testerRunROP(pe,n,gadgets, distEsp,IncDec,numP,targetP2,targetR, PWinApi
         stopProcess = False
 
         end = eval_logger.stop_timing('rop_testerRunROP')
-        eval_logger.write_to_log(total_time=end, log_type='emu', extra='rop_testerRunROP')
+        eval_logger.write_to_log(total_time=end, log_type='emu', extra='rop_testerRunROP (emu_start)')
         return gOutput, locParam, locReg, winApiSyscallReached, givStDistance
 
     except UcError as e:
@@ -1853,7 +1895,7 @@ def rop_tester(testCode, ID=False, regWritable=False):
         except:
             pass
         end = eval_logger.stop_timing('rop_tester')
-        eval_logger.write_to_log(total_time=end, log_type='emu', extra='rop_tester')
+        eval_logger.write_to_log(total_time=end, log_type='emu', extra='rop_tester (emu_start)')
         return gOutput
 
     except UcError as e:
@@ -2059,7 +2101,7 @@ def rop_testerFS(testCode, fsReg,fsAdjust, ID=False, regWritable=False):
         except:
             pass
         end = eval_logger.stop_timing('rop_testerFS')
-        eval_logger.write_to_log(total_time=end, log_type='emu', extra='rop_testerFS')
+        eval_logger.write_to_log(total_time=end, log_type='emu', extra='rop_testerFS (emu_start)')
         return gOutput, syscallValAtESP
 
     except UcError as e:
@@ -2201,7 +2243,7 @@ def rop_testerDoublePush(testCode,first,second):
             dp ("Good HG gadget")
             hgGadgetStatus=True
         end = eval_logger.stop_timing('rop_testerDoublePush')
-        eval_logger.write_to_log(total_time=end, log_type='emu', extra='rop_testerDoublePush')
+        eval_logger.write_to_log(total_time=end, log_type='emu', extra='rop_testerDoublePush (emu_start)')
         return gOutput, hgGadgetStatus
 
 
@@ -2344,7 +2386,7 @@ def rop_testerDoublePop(testCode,first):
             dp ("Good HG gadget")
             hgGadgetStatus=True
         end = eval_logger.stop_timing('rop_testerDoublePop')
-        eval_logger.write_to_log(total_time=end, log_type='emu', extra='rop_testerDoublePop')
+        eval_logger.write_to_log(total_time=end, log_type='emu', extra='rop_testerDoublePop (emu_start)')
         return gOutput, hgGadgetStatus
 
 

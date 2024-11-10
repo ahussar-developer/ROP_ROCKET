@@ -8899,7 +8899,10 @@ def findMovDerefGetStackNotReg(reg,bad,length1, excludeRegs,regsNotUsed,espDesir
 		excludeRegs2= copy.deepcopy(excludeRegs)
 		
 		for op3 in regsNotUsed2:
+			eval_logger.start_timing('findStackPivot')
 			foundStart, chSP=findStackPivot(op3,bad,length1, excludeRegs,availableRegs,"")
+			end = eval_logger.stop_timing('findStackPivot')
+			eval_logger.write_to_log(total_time=end, log_type='other', extra='findStackPivot')
 			if foundStart:
 				# pk=pkBuild([chSP])
 				# showChain(pk,True)
@@ -10958,16 +10961,28 @@ def buildMovDerefSyscallProtect(excludeRegs,bad, myArgs ,numArgs):
 			regsNotUsed2.remove(op2)
 			dp ("op2 regsNotUsed", op2)
 			excludeRegs2,regsNotUsed3= regsAvailtoExclude(regsNotUsed2,excludeRegs)
+			eval_logger.start_timing('findMovDeref')
 			foundM1, m1 = findMovDeref(reg,op2,bad,length1, excludeRegs2)
+			end = eval_logger.stop_timing('findMovDeref')
+			eval_logger.write_to_log(total_time=end, log_type='other', extra='genWinSyscallNtProtectVirtualMemory-findMovDeref')
 			if not foundM1:
 				continue
+			eval_logger.start_timing('loadReg')
 			foundL1, p1, chP = loadReg(op2,bad,True,excludeRegs2,0x40,"NewProtection")
+			end = eval_logger.stop_timing('loadReg')
+			eval_logger.write_to_log(total_time=end, log_type='other', extra='genWinSyscallNtProtectVirtualMemory-loadReg')
 			if not foundL1:
 				continue
+			eval_logger.start_timing('findGeneric')
 			foundInc, i1 = findGeneric("dec",reg,bad,length1, regsNotUsed3,espDesiredMovement)
+			end = eval_logger.stop_timing('findGeneric')
+			eval_logger.write_to_log(total_time=end, log_type='other', extra='genWinSyscallNtProtectVirtualMemory-findGeneric')
 			if not foundInc:
 				continue
+			eval_logger.start_timing('findMovDerefGetStack')
 			foundStart, pkStart=findMovDerefGetStack(reg,bad,length1, excludeRegs2,regsNotUsed3,espDesiredMovement,distEsp)
+			end = eval_logger.stop_timing('findMovDerefGetStack')
+			eval_logger.write_to_log(total_time=end, log_type='other', extra='genWinSyscallNtProtectVirtualMemory-findMovDerefGetStack')
 
 			if not foundStart:
 				continue
@@ -10986,8 +11001,14 @@ def buildMovDerefSyscallProtect(excludeRegs,bad, myArgs ,numArgs):
 					regsNotUsed4.remove(reg)
 				except:
 					pass
+				eval_logger.start_timing('findUniTransfer')
 				foundT, gT1 = findUniTransfer("37",op3,reg, bad,length1,excludeRegs3,espDesiredMovement, "Save pointer to memory, " + op3,False,True)
+				end = eval_logger.stop_timing('findUniTransfer')
+				eval_logger.write_to_log(total_time=end, log_type='other', extra='genWinSyscallNtProtectVirtualMemory-findUniTransfer')
+				eval_logger.start_timing('findUniTransfer2')
 				foundT2, gTbase = findUniTransfer("38",op2,reg, bad,length1,excludeRegs3,espDesiredMovement, "Get BaseAddress value for pointer",False,True)
+				end = eval_logger.stop_timing('findUniTransfer2')
+				eval_logger.write_to_log(total_time=end, log_type='other', extra='genWinSyscallNtProtectVirtualMemory-findUniTransfer2')
 				if foundT and foundT2:
 					altRegforESP=op3
 					break
@@ -10997,15 +11018,24 @@ def buildMovDerefSyscallProtect(excludeRegs,bad, myArgs ,numArgs):
 				excludeRegs3.append(op3)
 			except:
 				pass
-
+			eval_logger.start_timing('helperMovDeref2')
 			helperSuccessSV, pkNBforPtr=helperMovDeref(reg,op2,bad,length1, regsNotUsed4,espDesiredMovement, NumberBytesProtect, m1,i1,"Set up value for Number of Bytes for ptr, " + hex(NumberBytesProtect))
-			
+			end = eval_logger.stop_timing('helperMovDeref2')
+			eval_logger.write_to_log(total_time=end, log_type='other', extra='genWinSyscallNtProtectVirtualMemory-helperMovDeref2')
+			eval_logger.start_timing('findUniTransfer3')
 			foundT, gT3 = findUniTransfer("39",op2,op3, bad,length1,excludeRegs3,espDesiredMovement, "Get ptr to OldAccessProtection",False,True)
+			end = eval_logger.stop_timing('findUniTransfer3')
+			eval_logger.write_to_log(total_time=end, log_type='other', extra='genWinSyscallNtProtectVirtualMemory-findUniTransfer3')
 			if not foundT:
 				continue
-
+			eval_logger.start_timing('helperMovDerefNoLoad')
 			helperSuccessP5, pkP5=helperMovDerefNoLoad(reg,op2,bad,length1, regsNotUsed4,espDesiredMovement, op2, "Write ptr to OldAccessProtection to memory")
+			end = eval_logger.stop_timing('helperMovDerefNoLoad')
+			eval_logger.write_to_log(total_time=end, log_type='other', extra='genWinSyscallNtProtectVirtualMemory-helperMovDerefNoLoad')
+			eval_logger.start_timing('helperMovDeref3')
 			helperSuccessP4, pkP4=helperMovDeref(reg,op2,bad,length1, regsNotUsed4,espDesiredMovement, NewAccessProt, m1,i1,"NewAccessProteciton, " + hex(NewAccessProt))
+			end = eval_logger.stop_timing('helperMovDeref3')
+			eval_logger.write_to_log(total_time=end, log_type='other', extra='genWinSyscallNtProtectVirtualMemory-helperMovDeref3')
 			if not helperSuccessP5 and helperSuccessP4:
 				continue
 
@@ -11023,7 +11053,10 @@ def buildMovDerefSyscallProtect(excludeRegs,bad, myArgs ,numArgs):
 			if not helperSuccessP3:
 				continue
 
+			eval_logger.start_timing('pkBuild')
 			pkP3=pkBuild([gT4,inc1,inc1,inc1,inc1,pkP3])#,pkDW,pkLP,pkRA,pkVP,pkEnd]) #pkFn,pkDW
+			end = eval_logger.stop_timing('pkBuild')
+			eval_logger.write_to_log(total_time=end, log_type='other', extra='genWinSyscallNtProtectVirtualMemory-pkBuild')
 			helperSuccessP2, pkP2=helperMovDerefNoLoad(reg,op2,bad,length1, regsNotUsed4,espDesiredMovement, op2, "BaseAddress pointer")
 			if not helperSuccessP2:
 				continue
@@ -11061,8 +11094,10 @@ def buildMovDerefSyscallProtect(excludeRegs,bad, myArgs ,numArgs):
 			# print("pkRA2", pkRA2)
 			curPk=pkBuild([pkStart,gTbase,pkBA,pkNBforPtr,gT1, gT3,pkP5,pkP4,pkP3,pkP2,pkP1,pkRA1,pkRA2])#,pkDW,pkLP,pkRA,pkVP,pkEnd]) #pkFn,pkDW
 		# distParam, apiReached=getDistanceParamReg(pe,n,pk,distEsp,IncDec,numP,1, reg, destAfter)  # pe,n,gadgets, IncDec,numP,targetP,targetR, destAfter
-
+			eval_logger.start_timing('getSyscallSetup')
 			foundSys, pkSysSetup=getSyscallSetup(reg,op2,bad,length1, regsNotUsed,espDesiredMovement,curPk,syscallSSN,distEsp,IncDec,numP,destAfter,distFinalESP,SyscallName,excludeRegs2,m1)
+			end = eval_logger.stop_timing('getSyscallSetup')
+			eval_logger.write_to_log(total_time=end, log_type='other', extra='genWinSyscallNtProtectVirtualMemory-getSyscallSetup')
 			if not foundSys:
 				print (red,"\n\n Almost made it: Only lacking gadget to leak FS",res,)
 				continue
@@ -17072,8 +17107,8 @@ if __name__ == "__main__":
 		# ALEX EVAL
 		if (eval_logger.evaluation):
 			# menu_options = ['g','a','v','s','d','m','!','@']
-			auto_run(all=True, optional_menu_arg=None)
-			#auto_run(all=False, optional_menu_arg='s')
+			#auto_run(all=True, optional_menu_arg=None)
+			auto_run(all=False, optional_menu_arg='v')
 		else:
 			ui()
 		#run_deletefile()

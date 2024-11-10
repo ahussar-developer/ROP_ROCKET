@@ -6,3 +6,4 @@ __pycache__/
 ROP_ROCKET.egg-info/
 parse_outout_logs.py
 rop2_timing.py
+.vscode/
